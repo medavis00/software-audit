@@ -1,0 +1,6 @@
+app,match,expected_version,machines,notes
+Google Chrome,,latest,,Chrome updates itself; flags any machine behind the newest
+Mozilla Firefox,Mozilla Firefox*;Firefox;firefox,latest,,
+7-Zip,7-Zip*,>=24.0,,Older 7-Zip versions have known security bugs
+Visual Studio Code,Microsoft Visual Studio Code*;Visual Studio Code;code;visual-studio-code,latest,,
+Zoom,Zoom*;zoom.us;zoom,,,Blank version = all machines must match each other

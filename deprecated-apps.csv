@@ -1,0 +1,4 @@
+app,match,reason
+Adobe Flash Player,Adobe Flash Player*;Flash Player,End of life since 2020
+Java 8,Java 8*;Java(TM) 8*,Old Java runtime; remove unless a specific app needs it
+CCleaner,CCleaner*,Bundled adware history; not needed on Windows 10/11
