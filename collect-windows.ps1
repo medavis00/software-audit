@@ -3,14 +3,21 @@
 
   Usage (from the software-audit folder):
     powershell -ExecutionPolicy Bypass -File .\collect-windows.ps1
-    powershell -ExecutionPolicy Bypass -File .\collect-windows.ps1 -IncludeStoreApps
+    powershell -ExecutionPolicy Bypass -File .\collect-windows.ps1 -SkipStoreApps
 
   Writes inventories\<COMPUTERNAME>.json next to this script.
   Reads the same registry keys that "Apps & features" uses, so no admin rights needed.
+
+  Besides installed apps it records a few extra items, each named with a prefix
+  so approved-apps.csv can check them:
+    winget                     winget's own version
+    vscode-ext:<id>            each VS Code extension
+    vs-workload:<id>           each Visual Studio workload
+    git-config:<key>           each global git setting (the "version" is its value)
 #>
 param(
     [string]$OutDir = (Join-Path $PSScriptRoot 'inventories'),
-    [switch]$IncludeStoreApps
+    [switch]$SkipStoreApps
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -41,17 +48,45 @@ foreach ($k in $keys) {
     }
 }
 
-if ($IncludeStoreApps) {
+function Add-Found($name, $version, $publisher, $source) {
+    $id = "$name|$version"
+    if ($name -and -not $apps.ContainsKey($id)) {
+        $apps[$id] = [ordered]@{ name = $name; version = "$version"; publisher = $publisher; source = $source }
+    }
+}
+
+# Store apps (Windows Terminal, ChatGPT, and others that never appear in the registry)
+if (-not $SkipStoreApps) {
     Get-AppxPackage | Where-Object { -not $_.IsFramework -and $_.SignatureKind -ne 'System' } | ForEach-Object {
-        $id = "$($_.Name)|$($_.Version)"
-        if (-not $apps.ContainsKey($id)) {
-            $apps[$id] = [ordered]@{
-                name      = $_.Name
-                version   = "$($_.Version)"
-                publisher = $_.PublisherId
-                source    = 'store'
-            }
+        Add-Found $_.Name $_.Version $_.PublisherId 'store'
+    }
+}
+
+if (Get-Command winget -ErrorAction SilentlyContinue) {
+    Add-Found 'winget' ("$(winget --version)".Trim() -replace '^v', '') 'Microsoft' 'check'
+}
+
+if (Get-Command code -ErrorAction SilentlyContinue) {
+    & code --list-extensions --show-versions 2>$null | ForEach-Object {
+        $parts = "$_".Trim() -split '@', 2
+        Add-Found "vscode-ext:$($parts[0])" $parts[1] '' 'check'
+    }
+}
+
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+if (Test-Path $vswhere) {
+    $instances = & $vswhere -all -prerelease -products * -include packages -format json | Out-String | ConvertFrom-Json
+    foreach ($inst in @($instances)) {
+        foreach ($pkg in @($inst.packages)) {
+            if ($pkg.type -eq 'Workload') { Add-Found "vs-workload:$($pkg.id)" $pkg.version $inst.displayName 'check' }
         }
+    }
+}
+
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    & git config --global --list 2>$null | ForEach-Object {
+        $parts = "$_" -split '=', 2
+        Add-Found "git-config:$($parts[0])" $parts[1] '' 'check'
     }
 }
 

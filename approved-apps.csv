@@ -1,6 +1,24 @@
 app,match,expected_version,machines,notes
-Google Chrome,,latest,,Chrome updates itself; flags any machine behind the newest
-Mozilla Firefox,Mozilla Firefox*;Firefox;firefox,latest,,
-7-Zip,7-Zip*,>=24.0,,Older 7-Zip versions have known security bugs
+winget,winget,latest,,winget's own version (checks winget is installed and up to date)
+Git for Windows,Git;Git version*,latest,,
+Git Credential Manager is the credential helper,git-config:credential.helper,equals:manager,,Set with: git config --global credential.helper manager
+Azure DevOps sign-in uses OAuth,git-config:credential.azreposcredentialtype,equals:oauth,,Set with: git config --global credential.azreposCredentialType oauth
+Azure DevOps uses per-repo credentials,git-config:credential.https://dev.azure.com.usehttppath,equals:true,,Set with: git config --global credential.https://dev.azure.com.useHttpPath true
+.NET 10 SDK,Microsoft .NET SDK 10.*,latest,,
+Node.js LTS,Node.js,latest,,To hold machines to an LTS line use >=24.0 (or the current LTS major)
+Windows Terminal,Microsoft.WindowsTerminal;Windows Terminal,latest,,Store app
+SQL Server Developer,Microsoft SQL Server 2022 (64-bit);Microsoft SQL Server 2025 (64-bit),latest,,Flags a machine on 2022 while another has 2025. Use any to allow either
+SSMS 22,*SQL Server Management Studio*,>=22.0,,
+Visual Studio 2026 Community,Visual Studio Community 2026*,latest,,
+VS workload: ASP.NET and web,vs-workload:Microsoft.VisualStudio.Workload.NetWeb,any,,Edit or delete the workload rows to match the workloads you use
+VS workload: .NET desktop,vs-workload:Microsoft.VisualStudio.Workload.ManagedDesktop,any,,
+VS workload: Azure,vs-workload:Microsoft.VisualStudio.Workload.Azure,any,,
+VS workload: Data storage and processing,vs-workload:Microsoft.VisualStudio.Workload.Data,any,,
 Visual Studio Code,Microsoft Visual Studio Code*;Visual Studio Code;code;visual-studio-code,latest,,
-Zoom,Zoom*;zoom.us;zoom,,,Blank version = all machines must match each other
+#VS Code extension example,vscode-ext:ms-dotnettools.csdevkit,latest,,Remove the # to turn a row on. Run audit.py --suggest to list your extensions
+Notepad++,Notepad++*,latest,,
+Docker Desktop,Docker Desktop,latest,,
+Postman,Postman*,latest,,
+Azure CLI,Microsoft Azure CLI*,latest,,
+Claude desktop,Claude;*Claude*,latest,,
+ChatGPT desktop,ChatGPT;OpenAI.ChatGPT*;*ChatGPT*,latest,,Store app

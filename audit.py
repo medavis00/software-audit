@@ -20,7 +20,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 INV_DIR = HERE / "inventories"
 
-OK, BEHIND, NEWER, MISSING, REMOVE, NA = "OK", "BEHIND", "NEWER", "MISSING", "REMOVE", "-"
+OK, BEHIND, NEWER, MISSING, REMOVE, WRONG, NA = "OK", "BEHIND", "NEWER", "MISSING", "REMOVE", "WRONG", "-"
+PROBLEMS = (BEHIND, MISSING, REMOVE, WRONG)
 
 
 def version_key(v):
@@ -83,6 +84,22 @@ def audit(machines, approved, deprecated):
 
         expected = row.get("expected_version", "")
         minimum = expected.startswith(">=")
+        is_value = expected.lower().startswith("equals:")
+        if expected.lower() == "any" or is_value:
+            # "any": just has to be installed. "equals:text": value must match exactly
+            # (used for settings such as git-config entries). Not "=text", which Excel
+            # would turn into a formula.
+            want = expected[7:].strip().lower() if is_value else None
+            cells = {}
+            for h in hosts:
+                if scope and h.lower() not in scope:
+                    cells[h] = (NA, "")
+                elif h not in found:
+                    cells[h] = (MISSING, "")
+                else:
+                    cells[h] = (OK if want is None or found[h].lower() == want else WRONG, found[h])
+            results.append(("Approved", row["app"], expected, cells, row.get("notes", "")))
+            continue
         if minimum:
             target = expected[2:].strip()
         elif expected and expected.lower() != "latest":
@@ -146,12 +163,12 @@ def write_csv(hosts, results, path):
                 w.writerow([section, app, expected, h, status, ver, note])
 
 
-COLORS = {OK: "ok", BEHIND: "bad", MISSING: "warn", REMOVE: "bad", NEWER: "info", NA: "na"}
+COLORS = {OK: "ok", BEHIND: "bad", MISSING: "warn", REMOVE: "bad", WRONG: "bad", NEWER: "info", NA: "na"}
 
 
 def write_html(machines, hosts, results, extra, path):
     e = html.escape
-    issues = sum(1 for _, _, _, c, _ in results for s, _ in c.values() if s in (BEHIND, MISSING, REMOVE))
+    issues = sum(1 for _, _, _, c, _ in results for s, _ in c.values() if s in PROBLEMS)
     out = [f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Software audit</title><style>
@@ -166,7 +183,7 @@ th{{background:#f4f4f4}} td.note{{color:#666;font-size:12px}}
 </style></head><body>
 <h1>Software audit</h1>
 <div class="sub">{datetime.now():%Y-%m-%d %H:%M} &middot; {len(hosts)} machines &middot;
-<b>{issues} issue(s)</b> (behind, missing, or should be removed)</div>
+<b>{issues} issue(s)</b> (behind, missing, wrong setting, or should be removed)</div>
 <table><tr><th>Machine</th><th>OS</th><th>Inventory taken</th><th>Apps found</th></tr>"""]
     for m in machines:
         out.append(f"<tr><td>{e(m['hostname'])}</td><td>{e(m.get('os', ''))}</td>"
@@ -217,7 +234,7 @@ def main():
     for section, app, _, cells, _ in results:
         for h in hosts:
             s, v = cells[h]
-            if s in (BEHIND, MISSING, REMOVE):
+            if s in PROBLEMS:
                 print(f"  {s:8} {app} on {h}" + (f" ({v})" if v else ""))
     print(f"\n{issues} issue(s) across {len(hosts)} machines. Open report.html for the full picture.")
 

@@ -88,6 +88,16 @@ Darwin)
     ;;
 esac
 
+# Extra items, named with a prefix so approved-apps.csv can check them.
+if command -v code >/dev/null 2>&1; then
+    code --list-extensions --show-versions 2>/dev/null \
+        | while IFS=@ read -r n v; do add_app "vscode-ext:$n" "$v" "" "check"; done
+fi
+if command -v git >/dev/null 2>&1; then
+    git config --global --list 2>/dev/null \
+        | while IFS== read -r k v; do add_app "git-config:$k" "$v" "" "check"; done
+fi
+
 mkdir -p "$OUT_DIR"
 OUT="$OUT_DIR/$HOST.json"
 COUNT=0
